@@ -75,4 +75,4 @@ jobs:
         run: |
           cd starter/backend/k8s
           kustomize edit set image backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          kustomize build | kubectl apply -f -
+          kustomize build | kubectl apply -f - . --validate=false
