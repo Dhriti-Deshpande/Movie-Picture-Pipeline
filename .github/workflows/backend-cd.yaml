@@ -186,6 +186,11 @@ jobs:
         run: |
           aws eks update-kubeconfig --name udacity-cluster --region us-east-1
 
+      - name: Debug cluster auth
+        run: |
+          aws sts get-caller-identity
+          kubectl get ns
+
       - name: Deploy to EKS with Kustomize
         run: |
           cd k8s
