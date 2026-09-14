@@ -1,3 +1,81 @@
+# name: Backend Continuous Deployment
+
+# on:
+#   push:
+#     branches: [ main ]
+#     paths:
+#       - 'starter/backend/**'
+#   workflow_dispatch:
+
+# jobs:
+#   lint-and-test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.10'
+
+#       - name: Install Dependencies
+#         run: |
+#           cd starter/backend
+#           pip install pipenv
+#           pipenv install --dev
+
+#       - name: Run Tests
+#         run: |
+#           cd starter/backend
+#           pipenv run pytest
+
+#   deploy:
+#     needs: lint-and-test
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           #force trigger
+#           aws-region: us-east-1
+      
+#       - name: Check AWS Identity
+#         run: aws sts get-caller-identity
+
+#       - name: Login to Amazon ECR
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v2
+
+#       - name: Build, Tag, and Push Image to Amazon ECR
+#         env:
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           ECR_REPOSITORY: backend
+#           IMAGE_TAG: ${{ github.sha }}
+#         run: |
+#           cd starter/backend
+#           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+#       - name: Update Kubeconfig
+#         run: |
+#           aws eks update-kubeconfig --name udacity-cluster --region us-east-1 --alias udacity-cluster
+
+#       - name: Deploy to EKS
+#         env:
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           ECR_REPOSITORY: backend
+#           IMAGE_TAG: ${{ github.sha }}
+#         run: |
+#           cd starter/backend/k8s
+#           kustomize edit set image backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           kustomize build | kubectl apply -f - --validate=false
 name: Backend Continuous Deployment
 
 on:
@@ -10,6 +88,7 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -30,49 +109,102 @@ jobs:
           cd starter/backend
           pipenv run pytest
 
+
   deploy:
     needs: lint-and-test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
+      # ---------------------------------------
+      # Configure AWS
+      # ---------------------------------------
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          #force trigger
           aws-region: us-east-1
-      
-      - name: Check AWS Identity
-        run: aws sts get-caller-identity
 
+
+      # ---------------------------------------
+      # Verify AWS credentials
+      # ---------------------------------------
+      - name: Check AWS Identity
+        run: |
+          aws sts get-caller-identity
+
+
+      # ---------------------------------------
+      # Login to Amazon ECR
+      # ---------------------------------------
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+
+      # ---------------------------------------
+      # Build and Push Docker Image
+      # ---------------------------------------
       - name: Build, Tag, and Push Image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: backend
           IMAGE_TAG: ${{ github.sha }}
+
         run: |
           cd starter/backend
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            .
+
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
+
+      # ---------------------------------------
+      # Configure kubectl for EKS
+      # ---------------------------------------
       - name: Update Kubeconfig
         run: |
-          aws eks update-kubeconfig --name udacity-cluster --region us-east-1
+          aws eks update-kubeconfig \
+            --name udacity-cluster \
+            --region us-east-1 \
+            --alias udacity-cluster
 
+
+      # ---------------------------------------
+      # Verify EKS connection
+      # ---------------------------------------
+      - name: Verify EKS Access
+        run: |
+          echo "AWS Identity:"
+          aws sts get-caller-identity
+
+          echo "Kubernetes Context:"
+          kubectl config current-context
+
+          echo "EKS Nodes:"
+          kubectl get nodes
+
+
+      # ---------------------------------------
+      # Deploy application to EKS
+      # ---------------------------------------
       - name: Deploy to EKS
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: backend
           IMAGE_TAG: ${{ github.sha }}
+
         run: |
           cd starter/backend/k8s
+
           kustomize edit set image backend=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
           kustomize build | kubectl apply -f - --validate=false
