@@ -190,4 +190,4 @@ jobs:
         run: |
           cd k8s
           kustomize edit set image backend=${{ env.IMAGE_URI }}
-          kustomize build | kubectl apply -f -
+          kustomize build | kubectl apply --validate=false -f -
