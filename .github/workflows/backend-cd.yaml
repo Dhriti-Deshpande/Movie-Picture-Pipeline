@@ -184,7 +184,7 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --name udacity-cluster --region us-east-1
+          aws eks update-kubeconfig --name cluster --region us-east-1
 
       - name: Deploy to EKS with Kustomize
         run: |
