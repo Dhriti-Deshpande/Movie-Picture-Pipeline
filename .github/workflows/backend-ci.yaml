@@ -1,65 +1,81 @@
+# 
+
 name: Backend Continuous Integration
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
     paths:
-      - 'starter/backend/**'
+      - "starter/backend/**"
   workflow_dispatch:
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/backend
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+          cache: "pipenv"
 
-      - name: Install Pipenv and Dependencies
+      - name: Install dependencies
         run: |
-          cd starter/backend
           pip install pipenv
           pipenv install --dev
 
-      - name: Run Linter
-        run: |
-          cd starter/backend
-          pipenv run flake8 || pipenv run lint || true
+      - name: Run lint
+        run: pipenv run lint
 
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/backend
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+          cache: "pipenv"
 
-      - name: Install Pipenv and Dependencies
+      - name: Install dependencies
         run: |
-          cd starter/backend
           pip install pipenv
           pipenv install --dev
 
-      - name: Run Tests
-        run: |
-          cd starter/backend
-          pipenv run pytest
+      - name: Run tests
+        run: pipenv run test
 
   build:
     needs: [lint, test]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: starter/backend
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Regenerate Pipfile.lock if stale
         run: |
-          cd starter/backend
-          docker build -t mp-backend:latest .
+          pip install pipenv
+          pipenv lock
+
+      - name: Build Docker image
+        run: docker build --tag mp-backend:latest .
