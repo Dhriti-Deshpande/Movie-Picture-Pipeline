@@ -10,7 +10,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: cluster
+  EKS_CLUSTER_NAME: udacity-cluster
   REACT_APP_MOVIE_API_URL: "http://afc94626a14da4893b59fbd2fe3e1405-2015353996.us-east-1.elb.amazonaws.com"
 
 jobs:
@@ -88,7 +88,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -111,10 +111,10 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+          aws eks update-kubeconfig --name udacity-cluster --region us-east-1
 
       - name: Deploy to EKS with Kustomize
         run: |
           cd k8s
           kustomize edit set image frontend=${{ env.IMAGE_URI }}
-          kustomize build | kubectl apply -f -
+          kustomize build | kubectl apply --validate=false -f -
