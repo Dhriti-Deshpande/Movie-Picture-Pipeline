@@ -11,7 +11,7 @@ on:
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: cluster
-  REACT_APP_MOVIE_API_URL: "http://a9c64cb2fff8f4f67bf5f25c55fe621b-1618700298.us-east-1.elb.amazonaws.com"
+  REACT_APP_MOVIE_API_URL: "http://aba8994f62e9349db8d4a4373c29d44d-77061908.us-east-1.elb.amazonaws.com"
 
 jobs:
   lint:
