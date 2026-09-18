@@ -10,7 +10,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: udacity-cluster
+  EKS_CLUSTER_NAME: cluster
   REACT_APP_MOVIE_API_URL: "http://afc94626a14da4893b59fbd2fe3e1405-2015353996.us-east-1.elb.amazonaws.com"
 
 jobs:
@@ -111,7 +111,7 @@ jobs:
 
       - name: Update kubeconfig
         run: |
-          aws eks update-kubeconfig --name udacity-cluster --region us-east-1
+          aws eks update-kubeconfig --name cluster --region us-east-1
 
       - name: Deploy to EKS with Kustomize
         run: |
